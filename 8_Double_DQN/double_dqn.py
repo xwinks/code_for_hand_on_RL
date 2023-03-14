@@ -48,12 +48,12 @@ class DQN:
         if np.random.random() < self.epsilon:
             action = np.random.randint(self.action_dim)
         else:
-            state = torch.tensor([np.array(state)], dtype=torch.float).to(self.device)
+            state = torch.tensor(np.array([state]), dtype=torch.float).to(self.device)
             action = self.q_net(state).argmax().item()
         return action
 
     def max_q_value(self, state):
-        state = torch.tensor([state], dtype=torch.float).to(self.device)
+        state = torch.tensor(np.array([state]), dtype=torch.float).to(self.device)
         return self.q_net(state).max().item()
 
     def update(self, transition_dict):
@@ -99,7 +99,7 @@ device = torch.device("cuda") if torch.cuda.is_available() else torch.device(
     "cpu")
 
 env_name = 'Pendulum-v1'
-env = gym.make(env_name)
+env = gym.make(env_name,render_mode = "human")
 state_dim = env.observation_space.shape[0]
 action_dim = 11  # 将连续动作分成11个离散动作
 
@@ -122,7 +122,8 @@ def train_DQN(agent, env, num_episodes, replay_buffer, minimal_size,
                 episode_return = 0
                 state,_ = env.reset()
                 done = False
-                while not done:
+                time_threshold = 2000
+                while not done and time_threshold > 0:
                     action = agent.take_action(state)
                     max_q_value = agent.max_q_value(
                         state) * 0.005 + max_q_value * 0.995  # 平滑处理
@@ -143,6 +144,7 @@ def train_DQN(agent, env, num_episodes, replay_buffer, minimal_size,
                             'dones': b_d
                         }
                         agent.update(transition_dict)
+                    time_threshold -= 1
                 return_list.append(episode_return)
                 if (i_episode + 1) % 10 == 0:
                     pbar.set_postfix({
